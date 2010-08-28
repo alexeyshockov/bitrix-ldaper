@@ -33,7 +33,7 @@
     </target>
 
     <target name="run-tests" depends="prepare-build-directory">
-    	<mkdir dir="${buildDirectory}/phpunit-tests" />
+    	<mkdir dir="${buildDirectory}/phpunit-reports" />
         <phpunit
         	printsummary="true">
             <formatter

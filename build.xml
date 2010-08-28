@@ -37,7 +37,7 @@
         <phpunit
         	printsummary="true">
             <formatter
-            	todir="${buildDirectory}/phpunit-tests"
+            	todir="${buildDirectory}/phpunit-reports"
                 type="xml" />
             <batchtest>
                 <fileset dir="${testsDirectory}/">

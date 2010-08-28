@@ -32,13 +32,13 @@
         </phpcodesniffer>
     </target>
 
-    <target name="run-tests">
+    <target name="run-tests" depends="prepare-build-directory">
+    	<mkdir dir="${buildDirectory}/phpunit-tests" />
         <phpunit
-            haltonerror="true"
-            haltonfailure="true">
+        	printsummary="true">
             <formatter
-                usefile="false"
-                type="plain" />
+            	todir="${buildDirectory}/phpunit-tests"
+                type="xml" />
             <batchtest>
                 <fileset dir="${testsDirectory}/">
                     <include name="**/*Test.php" />

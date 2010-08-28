@@ -59,6 +59,9 @@
         <copy todir="${buildDirectory}/${phing.project.name}-${bitrix.moduleVersion}">
             <filterchain>
                 <expandproperties />
+                <replaceregexp>
+                    <regexp pattern="dirname\(__FILE__\).'/../../../../src" replace="'capall" ignoreCase="true" />
+                </replaceregexp>
             </filterchain>
 
             <fileset dir="${sourceDirectory}">

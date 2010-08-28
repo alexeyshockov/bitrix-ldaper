@@ -5,7 +5,7 @@
  * @package Capall_Ldaper_Tests
  */
 
-require_once 'capall/ldaper/classes/Capall/Ldaper.php';
+require_once dirname(__FILE__).'/../../../../src/ldaper/classes/Capall/Ldaper.php';
 require_once 'Net/LDAP2.php';
 
 /**

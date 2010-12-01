@@ -2,6 +2,7 @@
 /**
  *
  * @author Alexey Shockov <alexey@shockov.com>
+ *
  * @package Capall_Ldaper_Tests
  */
 
@@ -11,12 +12,12 @@ require_once 'Net/LDAP2.php';
 /**
  *
  * @author Alexey Shockov <alexey@shockov.com>
+ *
  * @package Capall_Ldaper_Tests
  */
-class Capall_Ldaper_Tests_LdapAuthenticatorTest
+class Capall_Ldaper_Tests_LdapUserTest
     extends PHPUnit_Framework_TestCase
 {
-
     private $_ldapUserEntry;
 
     protected function setUp()

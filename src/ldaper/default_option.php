@@ -3,7 +3,7 @@
  * Default module settings.
  */
 
-$ldaper_default_option = array(
+$sh_ldaper_default_option = array(
     'host'                 => 'localhost',
     'port'	               => 389,
     'protocol'	           => '',
@@ -17,4 +17,6 @@ $ldaper_default_option = array(
     'login_attribute'      => 'uid',
     'mail_attribute'       => 'mail',
     'mail_attribute_index' => null,
+
+    'default_groups'       => '',
 );

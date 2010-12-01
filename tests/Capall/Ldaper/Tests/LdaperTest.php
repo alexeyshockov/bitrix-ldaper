@@ -16,8 +16,7 @@ require_once 'Net/LDAP2.php';
 class Capall_Ldaper_Tests_LdaperTest
     extends PHPUnit_Framework_TestCase
 {
-
-    private $_bitrixUser;
+    private $_bitrixUserManager;
 
     private $_ldapConnection;
 
@@ -27,153 +26,81 @@ class Capall_Ldaper_Tests_LdaperTest
     {
         $this->_ldapConnection = $this->getMock('Net_LDAP2');
 
-        $this->_bitrixUser = $this->getMock('CUser', array('GetList', 'Add'));
+        $this->_bitrixUserManager = $this->getMock(
+        	'Capall_Ldaper_BitrixUserManager',
+            array(),
+            array(),
+            '',
+            false // Don't call original constructor.
+        );
 
         $this->_ldaper = new Capall_Ldaper(
             $this->_ldapConnection,
-            $this->_bitrixUser,
-            'dc=some,dc=com'
+            $this->_bitrixUserManager,
+            'dc=test,dc=com'
         );
     }
 
     public function testUserWithExistingBitrixAccountLogin()
     {
-        $userFindResult = $this->getMock('CDBResult', array('Fetch'));
-        $userFindResult
+        $this->_bitrixUserManager
             ->expects($this->once())
-            ->method('Fetch')
-            ->with()
-            ->will($this->returnValue(
-                array('ID' => 1)
-            ));
-        $this->_bitrixUser
-            ->expects($this->once())
-            ->method('GetList')
-            ->with(
-                $this->isType('string'),
-                $this->isType('string'),
-                array('LOGIN_EQUAL_EXACT' => 'existing_login', 'EXTERNAL_AUTH_ID' => 'LDAPER')
-            )
-            ->will($this->returnValue(
-                $userFindResult
-            ));
-
-        $user = $this->getMock(
-        	'Capall_Ldaper_LdapUser',
-            array(),
-            array(),
-            '',
-            false // Don't call original constructor.
-        );
-        $user
-            ->expects($this->once())
-            ->method('getLogin')
-            ->with()
-            ->will($this->returnValue(
-                'existing_login'
-            ));
-
-        $this->assertEquals(1, $this->_ldaper->loginToBitrix($user));
-    }
-
-    public function testUserWithNotExistingBitrixAccountLogin()
-    {
-        $userFindResult = $this->getMock('CDBResult', array('Fetch'));
-        $userFindResult
-            ->expects($this->once())
-            ->method('Fetch')
-            ->with()
-            ->will($this->returnValue(
-                false
-            ));
-        $this->_bitrixUser
-            ->expects($this->once())
-            ->method('GetList')
-            ->with(
-                $this->isType('string'),
-                $this->isType('string'),
-                array('LOGIN_EQUAL_EXACT' => 'existing_login', 'EXTERNAL_AUTH_ID' => 'LDAPER')
-            )
-            ->will($this->returnValue(
-                $userFindResult
-            ));
-        $this->_bitrixUser
-            ->expects($this->once())
-            ->method('Add')
-            ->with($this->isType('array'))
+            ->method('getByLogin')
+            ->with('test')
             ->will($this->returnValue(
                 1
             ));
 
-        $user = $this->getMock(
+        $ldapUser = $this->getMock(
         	'Capall_Ldaper_LdapUser',
             array(),
             array(),
             '',
             false // Don't call original constructor.
         );
-        $user
-            ->expects($this->atLeastOnce())
+        $ldapUser
+            ->expects($this->once())
             ->method('getLogin')
             ->with()
             ->will($this->returnValue(
-                'existing_login'
-            ));
-        $user
-            ->expects($this->once())
-            ->method('getMail')
-            ->with()
-            ->will($this->returnValue(
-                'test@test.com'
+                'test'
             ));
 
-        $this->assertEquals(1, $this->_ldaper->loginToBitrix($user));
+        $this->assertEquals(1, $this->_ldaper->getBitrixUser($ldapUser));
     }
 
-    public function testUserWithNotExistingBitrixAccountAndDuplicateMailLogin()
+    public function testUserWithNotExistingBitrixAccountLogin()
     {
-        $userFindResult = $this->getMock('CDBResult', array('Fetch'));
-        $userFindResult
+        $this->_bitrixUserManager
             ->expects($this->once())
-            ->method('Fetch')
-            ->with()
+            ->method('getByLogin')
+            ->with('test')
             ->will($this->returnValue(
-                false
+                null
             ));
-        $this->_bitrixUser
+        $this->_bitrixUserManager
             ->expects($this->once())
-            ->method('GetList')
-            ->with(
-                $this->isType('string'),
-                $this->isType('string'),
-                array('LOGIN_EQUAL_EXACT' => 'existing_login', 'EXTERNAL_AUTH_ID' => 'LDAPER')
-            )
+            ->method('create')
+            ->with('test')
             ->will($this->returnValue(
-                $userFindResult
-            ));
-        $this->_bitrixUser
-            ->expects($this->once())
-            ->method('Add')
-            ->with($this->isType('array'))
-            ->will($this->returnValue(
-                false
+                1
             ));
 
-        $user = $this->getMock(
+        $ldapUser = $this->getMock(
         	'Capall_Ldaper_LdapUser',
             array(),
             array(),
             '',
             false // Don't call original constructor.
         );
-        $user
+        $ldapUser
             ->expects($this->atLeastOnce())
             ->method('getLogin')
             ->with()
             ->will($this->returnValue(
-                'existing_login'
+                'test'
             ));
-        $user
+        $ldapUser
             ->expects($this->once())
             ->method('getMail')
             ->with()
@@ -181,9 +108,7 @@ class Capall_Ldaper_Tests_LdaperTest
                 'test@test.com'
             ));
 
-        $this->setExpectedException('Capall_Ldaper_BitrixUserCreationException');
-
-        $this->_ldaper->loginToBitrix($user);
+        $this->assertEquals(1, $this->_ldaper->getBitrixUser($ldapUser));
     }
 
     public function testUserAuthentication()
@@ -191,27 +116,27 @@ class Capall_Ldaper_Tests_LdaperTest
         $this->_ldapConnection
             ->expects($this->once())
             ->method('bind')
-            ->with('uid=existing_login,dc=some,dc=com', 'some_password')
+            ->with('uid=test,dc=test,dc=com', 'password')
             ->will($this->returnValue(
                 true
             ));
 
-        $user = $this->getMock(
+        $ldapUser = $this->getMock(
         	'Capall_Ldaper_LdapUser',
             array(),
             array(),
             '',
             false // Don't call original constructor.
         );
-        $user
+        $ldapUser
             ->expects($this->once())
             ->method('getDn')
             ->with()
             ->will($this->returnValue(
-                'uid=existing_login,dc=some,dc=com'
+                'uid=test,dc=test,dc=com'
             ));
 
-        $this->assertTrue($this->_ldaper->authenticateUser($user, 'some_password'));
+        $this->assertTrue($this->_ldaper->authenticateUser($ldapUser, 'password'));
     }
 
     public function testGettingUserWithLdapError()
@@ -219,14 +144,14 @@ class Capall_Ldaper_Tests_LdaperTest
         $this->_ldapConnection
             ->expects($this->once())
             ->method('search')
-            ->with('dc=some,dc=com', '(uid=existing_login)')
+            ->with('dc=test,dc=com', '(uid=test)')
             ->will($this->returnValue(
                 new Net_LDAP2_Error()
             ));
 
         $this->setExpectedException('Capall_Ldaper_LdapException');
 
-        $this->_ldaper->getUser('existing_login');
+        $this->_ldaper->getLdapUser('test');
     }
 
     public function testGettingNotExistingUser()
@@ -248,12 +173,12 @@ class Capall_Ldaper_Tests_LdaperTest
         $this->_ldapConnection
             ->expects($this->once())
             ->method('search')
-            ->with('dc=some,dc=com', '(uid=not_existing_login)')
+            ->with('dc=test,dc=com', '(uid=test)')
             ->will($this->returnValue(
                 $ldapSearchResult
             ));
 
-        $this->assertNull($this->_ldaper->getUser('not_existing_login'));
+        $this->assertNull($this->_ldaper->getLdapUser('test'));
     }
 
     public function testGettingExistingUser()
@@ -289,14 +214,14 @@ class Capall_Ldaper_Tests_LdaperTest
         $this->_ldapConnection
             ->expects($this->once())
             ->method('search')
-            ->with('dc=some,dc=com', '(uid=existing_login)')
+            ->with('dc=test,dc=com', '(uid=test)')
             ->will($this->returnValue(
                 $ldapSearchResult
             ));
 
         $this->assertType(
         	'Capall_Ldaper_LdapUser',
-            $this->_ldaper->getUser('existing_login')
+            $this->_ldaper->getLdapUser('test')
         );
     }
 }

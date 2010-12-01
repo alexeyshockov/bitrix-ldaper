@@ -1,6 +1,10 @@
 <?php
 /**
+ * Wrapper over LDAP entry to encapsulate custom functionality.
  *
+ * @author Alexey Shockov <alexey@shockov.com>
+ *
+ * @package Capall_Ldaper
  */
 
 require_once dirname(__FILE__).'/LdapException.php';
@@ -11,6 +15,7 @@ require_once dirname(__FILE__).'/LdapException.php';
  * @internal
  *
  * @author Alexey Shockov <alexey@shockov.com>
+ *
  * @package Capall_Ldaper
  */
 class Capall_Ldaper_LdapUser
@@ -40,8 +45,8 @@ class Capall_Ldaper_LdapUser
      */
     public function __construct(
         $ldapEntry,
-        $loginAttribute = 'uid',
-        $mailAttribute = 'mail',
+        $loginAttribute     = 'uid',
+        $mailAttribute      = 'mail',
         $mailAttributeIndex = null
     )
     {
@@ -63,7 +68,7 @@ class Capall_Ldaper_LdapUser
     {
         $mails = $this->ldapEntry->getValue($this->mailAttribute, 'all');
 
-        if (PEAR::isError($mail)) {
+        if (PEAR::isError($mails)) {
             // Attribute setted incorrectly?
             throw new Capall_Ldaper_LdapException($mail);
         }

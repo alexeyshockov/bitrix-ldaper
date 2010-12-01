@@ -3,14 +3,15 @@
  * Main authenticator class.
  *
  * @author Alexey Shockov <alexey@shockov.com>
+ *
  * @package Capall_Ldaper
  */
 
-require_once 'Net/LDAP2.php';
-
 require_once dirname(__FILE__).'/Ldaper/LdapException.php';
+require_once dirname(__FILE__).'/Ldaper/UnavailableDependencyException.php';
 require_once dirname(__FILE__).'/Ldaper/BitrixUserCreationException.php';
 require_once dirname(__FILE__).'/Ldaper/LdapUser.php';
+require_once dirname(__FILE__).'/Ldaper/BitrixUserManager.php';
 
 /**
  * General authenticator class.
@@ -18,14 +19,15 @@ require_once dirname(__FILE__).'/Ldaper/LdapUser.php';
  * @todo Debug information to own custom log.
  *
  * @author Alexey Shockov <alexey@shockov.com>
+ *
  * @package Capall_Ldaper
  */
 class Capall_Ldaper
 {
     /**
-     * @var CUser
+     * @var Capall_Ldaper_BitrixUserManager
      */
-    private $bitrixUser;
+    private $bitrixUserManager;
     /**
      * @var Net_LDAP2
      */
@@ -51,7 +53,7 @@ class Capall_Ldaper
      * @internal
      *
      * @param Net_LDAP2 $ldapConnection
-     * @param CUser $bitrixUser
+     * @param Capall_Ldaper_BitrixUserManager $bitrixUserManager
      * @param string $baseDn
      * @param string $loginAttribute
      * @param string $mailAttribute
@@ -59,7 +61,7 @@ class Capall_Ldaper
      */
     public function __construct(
         $ldapConnection,
-        $bitrixUser,
+        $bitrixUserManager,
         $baseDn = '',
         $loginAttribute = 'uid',
         $mailAttribute = 'mail',
@@ -67,7 +69,7 @@ class Capall_Ldaper
     )
     {
         $this->ldapConnection     = $ldapConnection;
-        $this->bitrixUser         = $bitrixUser;
+        $this->bitrixUserManager  = $bitrixUserManager;
         $this->baseDn             = $baseDn;
         $this->loginAttribute     = $loginAttribute;
         $this->mailAttribute      = $mailAttribute;
@@ -83,13 +85,18 @@ class Capall_Ldaper
     public static function authenticate(&$params)
     {
         try {
+            // Import PEAR library gracefully...
+            if (!@include_once 'Net/LDAP2.php') {
+            	throw new Capall_Ldaper_UnavailableDependencyException('PEAR::Net_LDAP2');
+            }
+
             $ldapConnection = Net_LDAP2::connect(
                 array(
-                    'host'   => COption::GetOptionString('ldaper', 'host'),
-                    'port'   => COption::GetOptionInt('ldaper', 'port'),
+                    'host'   => COption::GetOptionString('sh.ldaper', 'host'),
+                    'port'   => COption::GetOptionInt('sh.ldaper', 'port'),
 
-                    'binddn' => COption::GetOptionString('ldaper', 'binddn'),
-                    'bindpw' => COption::GetOptionString('ldaper', 'bindpw'),
+                    'binddn' => COption::GetOptionString('sh.ldaper', 'binddn'),
+                    'bindpw' => COption::GetOptionString('sh.ldaper', 'bindpw'),
                 )
             );
             if (PEAR::isError($ldapConnection)) {
@@ -98,18 +105,27 @@ class Capall_Ldaper
 
             $ldaper = new self(
                 $ldapConnection,
-                new CUser(),
-                COption::GetOptionString('ldaper', 'basedn'),
-                COption::GetOptionString('ldaper', 'login_attribute'),
-                COption::GetOptionString('ldaper', 'mail_attribute'),
-                COption::GetOptionString('ldaper', 'mail_attribute_index')
+                new Capall_Ldaper_BitrixUserManager(
+                    new CUser(),
+                    array_filter(
+                        explode(
+                            ',',
+                            COption::GetOptionString('sh.ldaper', 'default_groups', '')
+                        ),
+                        'trim'
+					)
+                ),
+                COption::GetOptionString('sh.ldaper', 'basedn'),
+                COption::GetOptionString('sh.ldaper', 'login_attribute'),
+                COption::GetOptionString('sh.ldaper', 'mail_attribute'),
+                COption::GetOptionString('sh.ldaper', 'mail_attribute_index')
             );
 
-            $ldapUser = $ldaper->getUser($params['LOGIN']);
+            $ldapUser = $ldaper->getLdapUser($params['LOGIN']);
 
             if ($ldapUser) {
                 if ($ldaper->authenticateUser($ldapUser, $params['PASSWORD'])) {
-                    $bitrixUserIdentifier = $ldaper->loginToBitrix($ldapUser);
+                    $bitrixUserIdentifier = $ldaper->getBitrixUser($ldapUser);
                 } else {
                     // Authentication failed. May be user not from LDAP?
 
@@ -121,12 +137,13 @@ class Capall_Ldaper
                 return;
             }
 
+            // Return identifier to Bitrix for authorization.
             return $bitrixUserIdentifier;
         } catch (Capall_Ldaper_BitrixUserCreationException $error) {
             CEventLog::Log(
                 'WARNING',
                 'USER_LOGIN', // Or USER_REGISTER_FAIL?
-                'ldaper',
+                'sh.ldaper',
                 $params['LOGIN'],
                 (string)$error
             );
@@ -162,54 +179,14 @@ class Capall_Ldaper
      *
      * @internal
      *
-     * @throws Capall_Ldaper_BitrixUserCreationException
-     *
      * @param Capall_Ldaper_LdapUser $ldapUser
      *
      * @return int Bitrix's user identifier.
      */
-    public function loginToBitrix($ldapUser)
+    public function getBitrixUser($ldapUser)
     {
-        $findResult = $this->bitrixUser->GetList(
-            ($by = 'timestamp_x'),
-            ($order = 'desc'),
-            array(
-            	'LOGIN_EQUAL_EXACT' => $ldapUser->getLogin(),
-            	'EXTERNAL_AUTH_ID'  => 'LDAPER'
-            )
-        );
-        if(!($bitrixUserDescription = $findResult->Fetch())) {
-            $bitrixUserIdentifier = $this->_createBitrixUser($ldapUser, $password);
-        } else {
-            $bitrixUserIdentifier = $bitrixUserDescription["ID"];
-        }
-
-        return $bitrixUserIdentifier;
-    }
-    /**
-     *
-     * @throws Capall_Ldaper_BitrixUserCreationException
-     *
-     * @param Capall_Ldaper_LdapUser $ldapUser
-     * @param string $password
-     *
-     * @return int
-     */
-    private function _createBitrixUser($ldapUser)
-    {
-        // With EXTERNAL_AUTH_ID we are not obliged to pass password (many
-        // standard checks are not carried out for external authentication).
-        $bitrixUserIdentifier = $this->bitrixUser->Add(
-            array(
-                'LOGIN'            => $ldapUser->getLogin(),
-                'EMAIL'            => $ldapUser->getMail(),
-                'ACTIVE'           => 'Y',
-                'EXTERNAL_AUTH_ID' => 'LDAPER',
-            )
-        );
-
-        if (!$bitrixUserIdentifier) {
-            throw new Capall_Ldaper_BitrixUserCreationException($this->bitrixUser->LAST_ERROR);
+        if (!($bitrixUserIdentifier = $this->bitrixUserManager->getByLogin($ldapUser->getLogin()))) {
+            $bitrixUserIdentifier = $this->bitrixUserManager->create($ldapUser->getLogin(), $ldapUser->getMail());
         }
 
         return $bitrixUserIdentifier;
@@ -224,7 +201,7 @@ class Capall_Ldaper
      *
      * @return Capall_Ldaper_LdapUser
      */
-    public function getUser($login)
+    public function getLdapUser($login)
     {
         // Search in tree for user...
         $users = $this->ldapConnection->search(

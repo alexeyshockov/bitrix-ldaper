@@ -30,8 +30,20 @@ if (
     &&
     check_bitrix_sessid()
 ) {
+    // Process default groups first.
+    if (!isset($_POST['settings']['default_groups'])) {
+        $_POST['settings']['default_groups'] = array();
+    }
+    COption::SetOptionString(
+    	'sh.ldaper',
+    	'default_groups',
+        implode(',', $_POST['settings']['default_groups'])
+    );
+    unset($_POST['settings']['default_groups']);
+
+    // And other scalar settings.
     foreach ($_POST['settings'] as $settingName => $settingValue) {
-        COption::SetOptionString('ldaper', $settingName, $settingValue);
+        COption::SetOptionString('sh.ldaper', $settingName, $settingValue);
     }
 
     if (strlen($_REQUEST['Update']) && strlen($_REQUEST['back_url_settings'])) {
@@ -45,6 +57,18 @@ if (
             "&".$tabControl->ActiveTabParam()
         );
     }
+}
+
+// Dependencies check...
+if (!@include_once 'Net/LDAP2.php') {
+    $message = new CAdminMessage(
+        array(
+            'MESSAGE' => GetMessage('LDAPER_NET_LDAP2_NOT_INSTALLED'),
+            'HTML'    => true,
+        )
+    );
+    
+    echo $message->Show();
 }
 
 $tabControl->Begin();
@@ -64,7 +88,7 @@ $tabControl->Begin();
                 <input
                     type="text"
                     size="30"
-                    value="<?php echo COption::GetOptionString('ldaper', 'host') ?>"
+                    value="<?php echo COption::GetOptionString('sh.ldaper', 'host') ?>"
                     name="settings[host]" />
             </td>
         </tr>
@@ -77,7 +101,7 @@ $tabControl->Begin();
                 <input
                     type="text"
                     size="30"
-                    value="<?php echo COption::GetOptionString('ldaper', 'basedn') ?>"
+                    value="<?php echo COption::GetOptionString('sh.ldaper', 'basedn') ?>"
                     name="settings[basedn]" />
             </td>
         </tr>
@@ -87,7 +111,7 @@ $tabControl->Begin();
                 <input
                     type="text"
                     size="30"
-                    value="<?php echo COption::GetOptionString('ldaper', 'login_attribute') ?>"
+                    value="<?php echo COption::GetOptionString('sh.ldaper', 'login_attribute') ?>"
                     name="settings[login_attribute]" />
             </td>
         </tr>
@@ -100,8 +124,46 @@ $tabControl->Begin();
                 <input
                     type="text"
                     size="30"
-                    value="<?php echo COption::GetOptionString('ldaper', 'mail_attribute') ?>"
+                    value="<?php echo COption::GetOptionString('sh.ldaper', 'mail_attribute') ?>"
                     name="settings[mail_attribute]" />
+            </td>
+        </tr>
+        <tr class="heading">
+            <td colspan="2"><?php echo GetMessage('LDAPER_OPTIONS_AUTHORIZATION_SECTION') ?></td>
+        </tr>
+        <tr>
+            <td width="50%"><?php echo GetMessage('LDAPER_OPTIONS_DEFAULT_GROUPS_ATTRIBUTE') ?>:</td>
+            <td width="50%">
+<?php
+
+$selectedGroups = array_filter(
+    explode(
+        ',',
+        COption::GetOptionString('sh.ldaper', 'default_groups', '')
+    ),
+    'trim'
+);
+
+$groupResult = CGroup::GetList();
+
+$groups = array();
+while ($group = $groupResult->Fetch()) {
+    $groups[$group['ID']] = $group['NAME'];
+}
+
+?>
+                <select
+                    size="5" <?php /* Like main module */ ?>
+                    name="settings[default_groups][]"
+                    multiple="multiple">
+                    <?php foreach ($groups as $groupId => $groupName) { ?>
+                    <option
+                        <?php echo (in_array($groupId, $selectedGroups) ? 'selected="selected"' : '') ?>
+                        value="<?php echo $groupId ?>">
+                        [<?php echo $groupId ?>] <?php echo $groupName ?>
+                    </option>
+                    <?php } ?>
+                </select>
             </td>
         </tr>
 <?php $tabControl->BeginNextTab() ?>
@@ -114,7 +176,7 @@ $tabControl->Begin();
                 <input
                     type="text"
                     size="30"
-                    value="<?php echo COption::GetOptionInt('ldaper', 'port') ?>"
+                    value="<?php echo COption::GetOptionInt('sh.ldaper', 'port') ?>"
                     name="settings[port]" />
             </td>
         </tr>
@@ -127,7 +189,7 @@ $tabControl->Begin();
                 <input
                     type="text"
                     size="30"
-                    value="<?php echo COption::GetOptionString('ldaper', 'binddn') ?>"
+                    value="<?php echo COption::GetOptionString('sh.ldaper', 'binddn') ?>"
                     name="settings[binddn]" />
             </td>
         </tr>
@@ -149,7 +211,7 @@ $tabControl->Begin();
                 <input
                     type="text"
                     size="30"
-                    value="<?php echo COption::GetOptionInt('ldaper', 'mail_attribute_index') ?>"
+                    value="<?php echo COption::GetOptionInt('sh.ldaper', 'mail_attribute_index') ?>"
                     name="settings[mail_attribute_index]" />
             </td>
         </tr>

@@ -6,7 +6,7 @@
  * @package Capall_Ldaper_Tests
  */
 
-require_once dirname(__FILE__).'/../../../../src/ldaper/classes/Capall/Ldaper.php';
+require_once dirname(__FILE__).'/../../../../src/sh.ldaper/classes/Capall/Ldaper.php';
 
 /**
  *

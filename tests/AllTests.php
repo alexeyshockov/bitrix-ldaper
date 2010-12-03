@@ -20,7 +20,7 @@ class AllTests
 
     public static function suite()
     {
-        $suite = new PHPUnit_Framework_TestSuite('ldaper');
+        $suite = new PHPUnit_Framework_TestSuite('sh.ldaper');
 
         $suite->addTestSuite('Capall_Ldaper_Tests_LdaperTest.php');
         $suite->addTestSuite('Capall_Ldaper_Tests_LdapUserTest.php');

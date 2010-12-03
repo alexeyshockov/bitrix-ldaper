@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project name="ldaper" default="build-all" basedir=".">
+<project name="sh.ldaper" default="build-all" basedir=".">
 
     <property name="buildDirectory" value="./build" />
     <property name="sourceDirectory" value="./src" />
     <property name="testsDirectory" value="./tests" />
     <property name="bitrix.moduleVersion" value="1.0.0" />
+    
+    <property name="pear.packageName" value="ldaper" />
 
     <!-- Current time... -->
     <tstamp>
         <format property="bitrix.moduleVersionDate" pattern="%F %T" />
     </tstamp>
-    
+
     <property name="tempDirectory" value="/tmp/${phing.project.name}-${bitrix.moduleVersion}-${bitrix.moduleVersionDate}" />
 
     <property name="package.summary" value="Bitrix LDAP authentication module" />
@@ -58,11 +60,11 @@
         <mkdir dir="${buildDirectory}" />
     </target>
 
-    <target 
-        name="prepare-sources-for-pear-package" 
-        depends="prepare-build-directory" 
+    <target
+        name="prepare-sources-for-pear-package"
+        depends="prepare-build-directory"
         description="Prepare files for PEAR package.">
-        <copy todir="${tempDirectory}/pear/${phing.project.name}-${bitrix.moduleVersion}">
+        <copy todir="${tempDirectory}/pear/${pear.packageName}-${bitrix.moduleVersion}">
             <filterchain>
                 <expandproperties />
                 <replaceregexp>
@@ -79,21 +81,21 @@
         </copy>
     </target>
 
-    <target 
-        name="build-all" 
-        depends="build-pear-package, build-marketplace-module, build-marketplace-module-update" 
+    <target
+        name="build-all"
+        depends="build-pear-package, build-marketplace-module, build-marketplace-module-update"
         description="Build all available types of packages.">
 
     </target>
 
-    <target 
-        name="build-pear-package" 
-        depends="run-tests, prepare-sources-for-pear-package" 
+    <target
+        name="build-pear-package"
+        depends="run-tests, prepare-sources-for-pear-package"
         description="Build PEAR package.">
-        <pearpkg2 name="${phing.project.name}" dir="${tempDirectory}/pear/${phing.project.name}-${bitrix.moduleVersion}">
+        <pearpkg2 name="${pear.packageName}" dir="${tempDirectory}/pear/${pear.packageName}-${bitrix.moduleVersion}">
             <option name="outputdirectory" value="${tempDirectory}/pear" />
             <option name="packagefile" value="package.xml" />
-            <option name="packagedirectory" value="${tempDirectory}/pear/${phing.project.name}-${bitrix.moduleVersion}" />
+            <option name="packagedirectory" value="${tempDirectory}/pear/${pear.packageName}-${bitrix.moduleVersion}" />
             <option name="baseinstalldir" value="capall" />
             <option name="channel" value="capall.shockov.com" />
             <option name="summary" value="${package.summary}" />
@@ -128,23 +130,23 @@
                     <element key="recommended" value="false" />
                 </element>
             </mapping>
-            <fileset dir="${tempDirectory}/pear/${phing.project.name}-${bitrix.moduleVersion}">
+            <fileset dir="${tempDirectory}/pear/${pear.packageName}-${bitrix.moduleVersion}">
                 <include name="**" />
             </fileset>
         </pearpkg2>
 
         <mkdir dir="${buildDirectory}/pear" />
 
-        <tar destfile="${buildDirectory}/pear/${phing.project.name}-${bitrix.moduleVersion}.tgz" compression="gzip">
+        <tar destfile="${buildDirectory}/pear/${pear.packageName}-${bitrix.moduleVersion}.tgz" compression="gzip">
             <fileset dir="${tempDirectory}/pear">
                 <include name="**" />
             </fileset>
         </tar>
     </target>
 
-    <target 
-        name="build-marketplace-module" 
-        depends="run-tests, prepare-build-directory" 
+    <target
+        name="build-marketplace-module"
+        depends="run-tests, prepare-build-directory"
         description="Build module for Bitrix marketplace.">
         <copy todir="${tempDirectory}/bitrix-marketplace/.last_version">
             <filterchain>

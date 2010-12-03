@@ -148,7 +148,7 @@
         name="build-marketplace-module"
         depends="run-tests, prepare-build-directory"
         description="Build module for Bitrix marketplace.">
-        <copy todir="${tempDirectory}/bitrix-marketplace/.last_version">
+        <copy todir="${tempDirectory}/bitrix-marketplace-module/.last_version">
             <filterchain>
                 <expandproperties />
 				<iconvfilter inputencoding="UTF-8" outputencoding="CP1251" />
@@ -162,14 +162,17 @@
         <mkdir dir="${buildDirectory}/bitrix-marketplace" />
 
         <tar destfile="${buildDirectory}/bitrix-marketplace/.last_version.tar.gz" compression="gzip">
-            <fileset dir="${tempDirectory}/bitrix-marketplace">
+            <fileset dir="${tempDirectory}/bitrix-marketplace-module">
                 <include name="**" />
             </fileset>
         </tar>
     </target>
 
-    <target name="build-marketplace-module-update" depends="run-tests, prepare-build-directory" description="Build module update for Bitrix marketplace.">
-        <copy todir="${tempDirectory}/bitrix-marketplace/${bitrix.moduleVersion}">
+    <target
+        name="build-marketplace-module-update"
+        depends="run-tests, prepare-build-directory"
+        description="Build module update for Bitrix marketplace.">
+        <copy todir="${tempDirectory}/bitrix-marketplace-module-update/${bitrix.moduleVersion}">
             <filterchain>
                 <expandproperties />
 				<iconvfilter inputencoding="UTF-8" outputencoding="CP1251" />
@@ -183,7 +186,7 @@
         <mkdir dir="${buildDirectory}/bitrix-marketplace" />
 
         <tar destfile="${buildDirectory}/bitrix-marketplace/${bitrix.moduleVersion}.tar.gz" compression="gzip">
-            <fileset dir="${tempDirectory}/bitrix-marketplace/${bitrix.moduleVersion}">
+            <fileset dir="${tempDirectory}/bitrix-marketplace-module-update">
                 <include name="**" />
             </fileset>
         </tar>

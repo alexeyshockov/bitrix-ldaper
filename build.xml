@@ -5,18 +5,23 @@
     <property name="buildDirectory" value="./build" />
     <property name="sourceDirectory" value="./src" />
     <property name="testsDirectory" value="./tests" />
-    <property name="bitrix.moduleVersion" value="1.0.0" />
-    
-    <property name="pear.packageName" value="ldaper" />
+    <property
+    	name="tempDirectory"
+    	value="/tmp/${phing.project.name}-${bitrix.moduleVersion}-${bitrix.moduleVersionDate}" />
 
-    <!-- Current time... -->
+	<!-- Package properties. -->
+	<property name="bitrix.moduleName" value="sh.ldaper" />
+    <property name="bitrix.moduleVersion" value="1.1.0" />
     <tstamp>
+    	<!-- Current time... -->
         <format property="bitrix.moduleVersionDate" pattern="%F %T" />
     </tstamp>
-
-    <property name="tempDirectory" value="/tmp/${phing.project.name}-${bitrix.moduleVersion}-${bitrix.moduleVersionDate}" />
-
-    <property name="package.summary" value="Bitrix LDAP authentication module" />
+    <property name="pear.packageName" value="ldaper" />
+    <property name="pear.packageSummary" value="Bitrix LDAP authentication module" />
+    <property name="pear.channelName" value="capall.shockov.com" />
+	<php function="file_get_contents" returnProperty="pear.packageNotes">
+		<param value="${sourceDirectory}/${bitrix.moduleName}/description.en" />
+	</php>
 
     <target name="check-style">
         <phpcodesniffer
@@ -64,7 +69,7 @@
         name="prepare-sources-for-pear-package"
         depends="prepare-build-directory"
         description="Prepare files for PEAR package.">
-        <copy todir="${tempDirectory}/pear/${pear.packageName}-${bitrix.moduleVersion}">
+        <copy todir="${tempDirectory}/pear/new/${pear.packageName}-${bitrix.moduleVersion}">
             <filterchain>
                 <expandproperties />
                 <replaceregexp>
@@ -92,14 +97,29 @@
         name="build-pear-package"
         depends="run-tests, prepare-sources-for-pear-package"
         description="Build PEAR package.">
-        <pearpkg2 name="${pear.packageName}" dir="${tempDirectory}/pear/${pear.packageName}-${bitrix.moduleVersion}">
-            <option name="outputdirectory" value="${tempDirectory}/pear" />
+
+        <!-- Getting previous package.xml for changelog... -->
+		<httpget
+			url="http://${pear.channelName}/rest/r/${pear.packageName}/latest.txt"
+			dir="${tempDirectory}/pear" />
+		<php function="file_get_contents" returnProperty="pear.packagePreviousVersion">
+			<param value="${tempDirectory}/pear/latest.txt" />
+		</php>
+		<mkdir dir="${tempDirectory}/pear/latest" />
+		<httpget
+			url="http://${pear.channelName}/rest/r/${pear.packageName}/package.${pear.packagePreviousVersion}.xml"
+			dir="${tempDirectory}/pear/latest"
+			filename="package.xml" />
+
+        <pearpkg2 name="${pear.packageName}" dir="${tempDirectory}/pear/new/${pear.packageName}-${bitrix.moduleVersion}">
+            <option name="outputdirectory" value="${tempDirectory}/pear/new" />
             <option name="packagefile" value="package.xml" />
-            <option name="packagedirectory" value="${tempDirectory}/pear/${pear.packageName}-${bitrix.moduleVersion}" />
+            <option name="pathtopackagefile" value="${tempDirectory}/pear/latest" />
+            <option name="packagedirectory" value="${tempDirectory}/pear/new/${pear.packageName}-${bitrix.moduleVersion}" />
             <option name="baseinstalldir" value="capall" />
-            <option name="channel" value="capall.shockov.com" />
-            <option name="summary" value="${package.summary}" />
-            <option name="description" value="${package.summary}." />
+            <option name="channel" value="${pear.channelName}" />
+            <option name="summary" value="${pear.packageSummary}" />
+            <option name="description" value="${pear.packageSummary}." />
             <option name="apiversion" value="${bitrix.moduleVersion}" />
             <option name="apistability" value="beta" />
             <option name="releaseversion" value="${bitrix.moduleVersion}" />
@@ -108,7 +128,7 @@
             <option name="phpdep" value="5.0.0" />
             <option name="pearinstallerdep" value="1.4.6" />
             <option name="packagetype" value="php" />
-            <option name="notes" value="Initial build." />
+            <option name="notes" value="${pear.packageNotes}" />
             <mapping name="dir_roles">
                 <element key="tests" value="test" />
             </mapping>
@@ -130,7 +150,7 @@
                     <element key="recommended" value="false" />
                 </element>
             </mapping>
-            <fileset dir="${tempDirectory}/pear/${pear.packageName}-${bitrix.moduleVersion}">
+            <fileset dir="${tempDirectory}/pear/new/${pear.packageName}-${bitrix.moduleVersion}">
                 <include name="**" />
             </fileset>
         </pearpkg2>
@@ -138,7 +158,7 @@
         <mkdir dir="${buildDirectory}/pear" />
 
         <tar destfile="${buildDirectory}/pear/${pear.packageName}-${bitrix.moduleVersion}.tgz" compression="gzip">
-            <fileset dir="${tempDirectory}/pear">
+            <fileset dir="${tempDirectory}/pear/new">
                 <include name="**" />
             </fileset>
         </tar>

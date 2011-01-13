@@ -139,18 +139,14 @@ class Capall_Ldaper
 
             // Return identifier to Bitrix for authorization.
             return $bitrixUserIdentifier;
-        } catch (Capall_Ldaper_BitrixUserCreationException $error) {
+        } catch (Exception $error) {
             CEventLog::Log(
                 'WARNING',
-                'USER_LOGIN', // Or USER_REGISTER_FAIL?
+                'USER_LOGIN',
                 'sh.ldaper',
                 $params['LOGIN'],
                 (string)$error
             );
-        } catch (Exception $error) {
-            // TODO Use custom log (file?) for this errors.
-
-            return;
         }
     }
     /**

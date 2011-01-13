@@ -11,7 +11,7 @@
 
 	<!-- Package properties. -->
 	<property name="bitrix.moduleName" value="sh.ldaper" />
-    <property name="bitrix.moduleVersion" value="1.1.0" />
+    <property name="bitrix.moduleVersion" value="1.1.1" />
     <tstamp>
     	<!-- Current time... -->
         <format property="bitrix.moduleVersionDate" pattern="%F %T" />

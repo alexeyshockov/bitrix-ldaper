@@ -1,2 +1,1 @@
-* Implemented check for required PEAR::Net_LDAP2 library.
-* Implemented default groups for LDAP users.
+* All errors to event log.

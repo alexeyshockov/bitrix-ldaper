@@ -15,4 +15,4 @@ Or over Bitrix update system from [marketplace](http://www.1c-bitrix.ru/solution
 
 With PEAR you need also create symlink in your Bitrix installation(s):
 
-    ln -s /your-pear-directory/capall/sh.ldaper/ /your-site-document-root/bitrix/modules/sh.ldaper
+    ln -s /your-pear-directory/capall/sh.ldaper /your-site-document-root-directory/bitrix/modules/sh.ldaper
